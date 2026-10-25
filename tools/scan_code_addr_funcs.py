@@ -4,7 +4,9 @@ and passed around as a pointer, but that the analyzer never registered.
 usage: scan_code_addr_funcs.py <basefile.exe> <generated_dir>"""
 import struct, sys, glob, re
 b = open(sys.argv[1], 'rb').read(); B = 0x82000000
-def w(a): return struct.unpack('>I', b[a-B:a-B+4])[0]
+def w(a):
+    o = a - B
+    return struct.unpack('>I', b[o:o+4])[0] if 0 <= o <= len(b) - 4 else 0
 e = struct.unpack('<I', b[0x3c:0x40])[0]; ns = struct.unpack('<H', b[e+6:e+8])[0]; oh = struct.unpack('<H', b[e+20:e+22])[0]
 text = []
 for i in range(ns):
@@ -29,7 +31,13 @@ for lo, hi in text:
             if op in (14, 24) and ((j >> 16) & 31) == rd:   # addi / ori rY, rD, lo
                 lo16 = j & 0xFFFF
                 v = ((hi16 << 16) + (lo16 - 0x10000 if (op == 14 and lo16 & 0x8000) else lo16)) & 0xFFFFFFFF
-                if in_text(v) and v % 4 == 0 and v not in funcs and v not in labels and term(w(v - 4)) and w(v) != 0:
+                # Skip jump tables: lis/addi of a table base feeding lwzx/mtctr/bctr,
+                # or a target whose first words are themselves code addresses.
+                is_table = in_text(w(v)) or any(
+                    (w(a + 4 * m) >> 26) == 31 and ((w(a + 4 * m) >> 1) & 0x3FF) in (23, 467)  # lwzx / mtspr(ctr)
+                    for m in range(k + 1, k + 4))
+                if (in_text(v) and v % 4 == 0 and v not in funcs and v not in labels and term(w(v - 4))
+                        and w(v) != 0 and not is_table):
                     found.add(v)
                 break
             if ((j >> 21) & 31) == rd and op not in (36, 37, 38, 44, 45, 47, 54, 55):  # rD overwritten
