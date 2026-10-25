@@ -87,7 +87,11 @@ jobs:
         run: |
           # Stock package (PKG == REF): no patches. Otherwise apply sdk-builds patches/.
           Get-ChildItem ..\sdk-builds\patches\*.patch -ErrorAction SilentlyContinue | Sort-Object Name | ForEach-Object {
-            git apply --ignore-whitespace --whitespace=nowarn $_.FullName
+            if ($_.Name -like '*.ffmpeg.patch') {
+              git -C thirdparty/FFmpeg apply --ignore-whitespace --whitespace=nowarn $_.FullName
+            } else {
+              git apply --ignore-whitespace --whitespace=nowarn $_.FullName
+            }
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
           cmake --preset win-amd64 `
