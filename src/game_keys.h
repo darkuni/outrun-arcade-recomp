@@ -33,6 +33,10 @@ inline const KeyBind kKeyBinds[] = {
     {"keybind_back", "Back", "Backspace"},
 };
 
+// Audio frames to buffer by default (SDK default is 8). OutRun's streamed
+// music crackles with too small a buffer.
+inline constexpr int kDefaultAudioFrames = 32;
+
 inline const char* const kUnbound[] = {"keybind_lstick_press", "keybind_rstick_press",
                                        "keybind_guide"};
 

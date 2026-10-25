@@ -16,7 +16,7 @@ assets\
 ```
 
 ## In-game settings (F1 or Esc)
-Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), window size, render resolution, VSync, aspect ratio, texture filtering, keyboard on/off, per-button key rebinding, quit. Saved to `outrun_arcade.toml` next to the exe. F3 = performance overlay. Runs as the full game.
+Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), window size, render resolution, VSync, aspect ratio, texture filtering, audio buffer, keyboard on/off, per-button key rebinding, quit. Saved to `outrun_arcade.toml` next to the exe. F3 = performance overlay. Runs as the full game.
 
 ### Default keyboard layout
 | Action | Controller | Key |

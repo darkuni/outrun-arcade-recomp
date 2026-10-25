@@ -17,6 +17,8 @@
 // Set once the first-launch defaults (windowed, keyboard on, key layout) are written.
 REXCVAR_DEFINE_BOOL(recomp_defaults_applied, false, "Recomp",
                     "First-launch defaults have been applied");
+// Bumped when a newer build adds a default (2 = per-game audio buffer).
+REXCVAR_DEFINE_INT32(recomp_defaults_version, 0, "Recomp", "Last applied defaults version");
 
 namespace recomp_ui {
 namespace {
@@ -48,6 +50,7 @@ enum MainRow {
   kVsync,
   kAspect,
   kFiltering,
+  kAudioBuffer,
   kKeyboard,
   kEditKeys,
   kCloseMenu,
@@ -72,6 +75,19 @@ const int kAnisoValues[] = {-1, 0, 2, 3, 4, 5};
 const char* const kAnisoLabels[] = {"Game default", "Off", "2x", "4x", "8x", "16x"};
 constexpr int kAnisoCount = 6;
 
+// audio_maxqframes values and their labels
+const int kAudioFrames[] = {8, 16, 32, 64};
+const char* const kAudioLabels[] = {"Small (8)", "Medium (16)", "Large (32)", "Max (64)"};
+constexpr int kAudioCount = 4;
+
+int AudioIndex() {
+  int v = GetInt("audio_maxqframes"), best = 0;
+  for (int i = 0; i < kAudioCount; i++) {
+    if (kAudioFrames[i] <= v) best = i;
+  }
+  return best;
+}
+
 const char* const kRenderLabels[] = {"1x  1280x720 (original)", "2x  2560x1440", "3x  3840x2160"};
 
 const char* MainLabel(int row) {
@@ -82,6 +98,7 @@ const char* MainLabel(int row) {
     case kVsync: return "VSync";
     case kAspect: return "Aspect ratio";
     case kFiltering: return "Texture filtering";
+    case kAudioBuffer: return "Audio buffer";
     case kKeyboard: return "Keyboard controls";
     case kEditKeys: return "Edit keyboard keys";
     case kCloseMenu: return "Close menu";
@@ -98,6 +115,7 @@ const char* MainNote(int row) {
     case kVsync: return "Wait for the monitor refresh. Off can tear.";
     case kAspect: return "Keep 16:9 adds black bars on other window shapes.";
     case kFiltering: return "Sharper textures seen at an angle.";
+    case kAudioBuffer: return "Bigger fixes crackles and dropouts, smaller has less delay. Next launch.";
     case kKeyboard: return "Play with the keyboard as controller 1.";
     case kEditKeys: return "Choose which key presses each controller button.";
   }
@@ -129,6 +147,7 @@ std::string MainValue(int row) {
     case kVsync: return GetBool("vsync") ? "On" : "Off";
     case kAspect: return GetBool("present_letterbox") ? "Keep 16:9" : "Stretch to window";
     case kFiltering: return kAnisoLabels[AnisoIndex()];
+    case kAudioBuffer: return kAudioLabels[AudioIndex()];
     case kKeyboard: return GetBool("mnk_mode") ? "On" : "Off";
   }
   return {};
@@ -269,6 +288,12 @@ void GameMenu::Change(int row, int dir) {
     case kFiltering: {
       int i = (AnisoIndex() + dir + kAnisoCount) % kAnisoCount;
       SetInt("anisotropic_override", kAnisoValues[i]);
+      break;
+    }
+    case kAudioBuffer: {
+      int i = (AudioIndex() + dir + kAudioCount) % kAudioCount;
+      SetInt("audio_maxqframes", kAudioFrames[i]);
+      status_ = "Audio buffer changes on the next launch.";
       break;
     }
     case kKeyboard: SetBool("mnk_mode", !GetBool("mnk_mode")); break;

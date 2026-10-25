@@ -6,6 +6,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
@@ -18,6 +19,7 @@
 
 #include <imgui.h>
 
+#include "game_keys.h"
 #include "game_menu.h"
 
 class OutrunArcadeApp : public rex::ReXApp {
@@ -68,6 +70,14 @@ class OutrunArcadeApp : public rex::ReXApp {
       REXLOG_INFO("First launch: wrote default settings to {}",
                   config_path_.filename().string());
     }
+    // Defaults added by later builds, applied once on top of existing settings.
+    if (rex::cvar::Query<int32_t>("recomp_defaults_version") < 2) {
+      rex::cvar::SetFlagByName("audio_maxqframes",
+                               std::to_string(recomp_ui::game_keys::kDefaultAudioFrames));
+      rex::cvar::SetFlagByName("recomp_defaults_version", "2");
+      if (!config_path_.empty()) rex::cvar::SaveConfig(config_path_);
+    }
+    REXLOG_INFO("Audio buffer: {} frames", rex::cvar::Query<int32_t>("audio_maxqframes"));
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
