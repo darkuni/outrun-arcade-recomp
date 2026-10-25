@@ -58,6 +58,11 @@ jobs:
           path: rexglue-sdk-install
           key: rexglue-sdk-${{ env.REXGLUE_SDK_PKG }}-win-amd64
 
+      - name: Keep LF line endings (SDK patches are LF)
+        if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
+        shell: pwsh
+        run: git config --global core.autocrlf false
+
       - name: Checkout ReXGlue SDK
         if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
         uses: actions/checkout@v4
@@ -80,7 +85,7 @@ jobs:
         working-directory: rexglue-sdk
         run: |
           Get-ChildItem ..\sdk-builds\patches\*.patch | Sort-Object Name | ForEach-Object {
-            git apply --whitespace=nowarn $_.FullName
+            git apply --ignore-whitespace --whitespace=nowarn $_.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
           cmake --preset win-amd64 `
