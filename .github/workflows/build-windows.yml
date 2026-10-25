@@ -73,7 +73,7 @@ jobs:
           submodules: recursive
 
       - name: Checkout SDK patches
-        if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
+        if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == '' && env.REXGLUE_SDK_PKG != env.REXGLUE_SDK_REF
         uses: actions/checkout@v4
         with:
           repository: darkuni/rexglue-sdk-builds
@@ -84,7 +84,8 @@ jobs:
         shell: pwsh
         working-directory: rexglue-sdk
         run: |
-          Get-ChildItem ..\sdk-builds\patches\*.patch | Sort-Object Name | ForEach-Object {
+          # Stock package (PKG == REF): no patches. Otherwise apply sdk-builds patches/.
+          Get-ChildItem ..\sdk-builds\patches\*.patch -ErrorAction SilentlyContinue | Sort-Object Name | ForEach-Object {
             git apply --ignore-whitespace --whitespace=nowarn $_.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
