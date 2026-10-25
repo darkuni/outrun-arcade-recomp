@@ -47,3 +47,20 @@
 0x824BD1DC = {}
 0x824BD31C = {}
 0x824BD9DC = {}
+
+# Functions whose address is built in code (lis+addi) and used as a pointer,
+# with no bl caller and no .pdata entry. Found by tools/scan_code_addr_funcs.py.
+0x8223D780 = {}
+0x822E69A8 = {}
+0x822E69B8 = {}
+0x822E69C8 = {}
+0x822E69D8 = {}
+0x822E69E8 = {}
+0x822E69F8 = {}
+0x822E6A08 = {}
+0x822E6A18 = {}
+0x822E6A28 = {}
+0x822E6A38 = {}
+0x823756D0 = {}
+0x823AADA0 = {}
+0x82484320 = {}

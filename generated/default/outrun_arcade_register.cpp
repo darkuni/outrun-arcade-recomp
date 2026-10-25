@@ -3580,6 +3580,7 @@ void outrun_arcade_RegisterFunctions(rex::runtime::IModuleRegistrar* registrar) 
   registrar->SetFunction(0x8223D2D8, sub_8223D2D8);
   registrar->SetFunction(0x8223D468, sub_8223D468);
   registrar->SetFunction(0x8223D5B8, sub_8223D5B8);
+  registrar->SetFunction(0x8223D780, sub_8223D780);
   registrar->SetFunction(0x8223ECA8, sub_8223ECA8);
   registrar->SetFunction(0x8223F0F8, sub_8223F0F8);
   registrar->SetFunction(0x8223F110, sub_8223F110);
@@ -5606,6 +5607,16 @@ void outrun_arcade_RegisterFunctions(rex::runtime::IModuleRegistrar* registrar) 
   registrar->SetFunction(0x822E6960, sub_822E6960);
   registrar->SetFunction(0x822E6968, sub_822E6968);
   registrar->SetFunction(0x822E6988, sub_822E6988);
+  registrar->SetFunction(0x822E69A8, sub_822E69A8);
+  registrar->SetFunction(0x822E69B8, sub_822E69B8);
+  registrar->SetFunction(0x822E69C8, sub_822E69C8);
+  registrar->SetFunction(0x822E69D8, sub_822E69D8);
+  registrar->SetFunction(0x822E69E8, sub_822E69E8);
+  registrar->SetFunction(0x822E69F8, sub_822E69F8);
+  registrar->SetFunction(0x822E6A08, sub_822E6A08);
+  registrar->SetFunction(0x822E6A18, sub_822E6A18);
+  registrar->SetFunction(0x822E6A28, sub_822E6A28);
+  registrar->SetFunction(0x822E6A38, sub_822E6A38);
   registrar->SetFunction(0x822E6A48, sub_822E6A48);
   registrar->SetFunction(0x822E6A98, sub_822E6A98);
   registrar->SetFunction(0x822E6B38, sub_822E6B38);
@@ -6887,6 +6898,7 @@ void outrun_arcade_RegisterFunctions(rex::runtime::IModuleRegistrar* registrar) 
   registrar->SetFunction(0x82375310, sub_82375310);
   registrar->SetFunction(0x82375410, sub_82375410);
   registrar->SetFunction(0x823754F0, sub_823754F0);
+  registrar->SetFunction(0x823756D0, sub_823756D0);
   registrar->SetFunction(0x823756D8, sub_823756D8);
   registrar->SetFunction(0x82375958, sub_82375958);
   registrar->SetFunction(0x823781C8, sub_823781C8);
@@ -7289,7 +7301,7 @@ void outrun_arcade_RegisterFunctions(rex::runtime::IModuleRegistrar* registrar) 
   registrar->SetFunction(0x823AAAD0, sub_823AAAD0);
   registrar->SetFunction(0x823AABD0, sub_823AABD0);
   registrar->SetFunction(0x823AAC38, sub_823AAC38);
-  registrar->SetFunction(0x823AAE14, sub_823AAE14);
+  registrar->SetFunction(0x823AADA0, sub_823AADA0);
   registrar->SetFunction(0x823AAE28, sub_823AAE28);
   registrar->SetFunction(0x823AAEC8, sub_823AAEC8);
   registrar->SetFunction(0x823AAF30, sub_823AAF30);
@@ -9278,6 +9290,7 @@ void outrun_arcade_RegisterFunctions(rex::runtime::IModuleRegistrar* registrar) 
   registrar->SetFunction(0x82483478, sub_82483478);
   registrar->SetFunction(0x82484058, sub_82484058);
   registrar->SetFunction(0x824842E8, sub_824842E8);
+  registrar->SetFunction(0x82484320, sub_82484320);
   registrar->SetFunction(0x82484440, sub_82484440);
   registrar->SetFunction(0x82484518, sub_82484518);
   registrar->SetFunction(0x82484558, sub_82484558);

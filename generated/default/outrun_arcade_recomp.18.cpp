@@ -1,5 +1,131 @@
 #include "outrun_arcade_init.h"
 
+DEFINE_REX_FUNC(sub_822F6B98) {
+	REX_FUNC_PROLOGUE();
+	// mflr r12
+	ctx.r12.u64 = ctx.lr;
+	// bl 0x824b1848
+	ctx.lr = 0x822F6BA0;
+	__savegprlr_28(ctx, base);
+	// lwz r29,260(r3)
+	ctx.r29.u64 = REX_LOAD_U32(ctx.r3.u32 + 260);
+	// mr r5,r3
+	ctx.r5.u64 = ctx.r3.u64;
+	// li r30,0
+	ctx.r30.s64 = 0;
+	// lwz r11,0(r29)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r29.u32 + 0);
+	// clrlwi. r9,r11,12
+	ctx.r9.u64 = ctx.r11.u32 & 0xFFFFF;
+	ctx.cr0.compare<int32_t>(ctx.r9.s32, 0, ctx.xer);
+	// beq 0x822f6c50
+	if (ctx.cr0.eq) goto loc_822F6C50;
+	// rotlwi r10,r29,0
+	ctx.r10.u64 = __builtin_rotateleft32(ctx.r29.u32, 0);
+	// lwz r3,20(r3)
+	ctx.r3.u64 = REX_LOAD_U32(ctx.r3.u32 + 20);
+	// rlwinm r8,r9,2,0,29
+	ctx.r8.u64 = __builtin_rotateleft64(ctx.r9.u32 | (ctx.r9.u64 << 32), 2) & 0xFFFFFFFC;
+	// rlwinm r7,r9,3,0,28
+	ctx.r7.u64 = __builtin_rotateleft64(ctx.r9.u32 | (ctx.r9.u64 << 32), 3) & 0xFFFFFFF8;
+	// li r11,0
+	ctx.r11.s64 = 0;
+	// lwz r10,8(r10)
+	ctx.r10.u64 = REX_LOAD_U32(ctx.r10.u32 + 8);
+	// add r6,r8,r10
+	ctx.r6.u64 = ctx.r8.u64 + ctx.r10.u64;
+	// add r8,r7,r10
+	ctx.r8.u64 = ctx.r7.u64 + ctx.r10.u64;
+loc_822F6BD8:
+	// lwzx r7,r11,r10
+	ctx.r7.u64 = REX_LOAD_U32(ctx.r11.u32 + ctx.r10.u32);
+	// lwz r4,0(r8)
+	ctx.r4.u64 = REX_LOAD_U32(ctx.r8.u32 + 0);
+	// rlwinm r31,r7,2,0,29
+	ctx.r31.u64 = __builtin_rotateleft64(ctx.r7.u32 | (ctx.r7.u64 << 32), 2) & 0xFFFFFFFC;
+	// lwz r28,0(r6)
+	ctx.r28.u64 = REX_LOAD_U32(ctx.r6.u32 + 0);
+	// rlwinm r4,r4,2,0,29
+	ctx.r4.u64 = __builtin_rotateleft64(ctx.r4.u32 | (ctx.r4.u64 << 32), 2) & 0xFFFFFFFC;
+	// cmplw cr6,r7,r28
+	ctx.cr6.compare<uint32_t>(ctx.r7.u32, ctx.r28.u32, ctx.xer);
+	// lwzx r31,r31,r3
+	ctx.r31.u64 = REX_LOAD_U32(ctx.r31.u32 + ctx.r3.u32);
+	// lwzx r4,r4,r3
+	ctx.r4.u64 = REX_LOAD_U32(ctx.r4.u32 + ctx.r3.u32);
+	// bne cr6,0x822f6c74
+	if (!ctx.cr6.eq) goto loc_822F6C74;
+	// lwz r28,8(r29)
+	ctx.r28.u64 = REX_LOAD_U32(ctx.r29.u32 + 8);
+	// lwz r7,56(r4)
+	ctx.r7.u64 = REX_LOAD_U32(ctx.r4.u32 + 56);
+	// lwzx r28,r28,r11
+	ctx.r28.u64 = REX_LOAD_U32(ctx.r28.u32 + ctx.r11.u32);
+	// cmplw cr6,r7,r28
+	ctx.cr6.compare<uint32_t>(ctx.r7.u32, ctx.r28.u32, ctx.xer);
+	// beq cr6,0x822f6c24
+	if (ctx.cr6.eq) goto loc_822F6C24;
+	// cmpwi cr6,r7,-1
+	ctx.cr6.compare<int32_t>(ctx.r7.s32, -1, ctx.xer);
+	// beq cr6,0x822f6c74
+	if (ctx.cr6.eq) goto loc_822F6C74;
+	// lwz r28,56(r31)
+	ctx.r28.u64 = REX_LOAD_U32(ctx.r31.u32 + 56);
+	// cmplw cr6,r7,r28
+	ctx.cr6.compare<uint32_t>(ctx.r7.u32, ctx.r28.u32, ctx.xer);
+	// bne cr6,0x822f6c74
+	if (!ctx.cr6.eq) goto loc_822F6C74;
+loc_822F6C24:
+	// lwz r7,60(r4)
+	ctx.r7.u64 = REX_LOAD_U32(ctx.r4.u32 + 60);
+	// lwz r4,60(r31)
+	ctx.r4.u64 = REX_LOAD_U32(ctx.r31.u32 + 60);
+	// xoris r7,r7,8
+	ctx.r7.u64 = ctx.r7.u64 ^ 524288;
+	// cmplw cr6,r7,r4
+	ctx.cr6.compare<uint32_t>(ctx.r7.u32, ctx.r4.u32, ctx.xer);
+	// bne cr6,0x822f6c74
+	if (!ctx.cr6.eq) goto loc_822F6C74;
+	// addi r30,r30,1
+	ctx.r30.s64 = ctx.r30.s64 + 1;
+	// addi r11,r11,4
+	ctx.r11.s64 = ctx.r11.s64 + 4;
+	// addi r8,r8,4
+	ctx.r8.s64 = ctx.r8.s64 + 4;
+	// addi r6,r6,4
+	ctx.r6.s64 = ctx.r6.s64 + 4;
+	// cmplw cr6,r30,r9
+	ctx.cr6.compare<uint32_t>(ctx.r30.u32, ctx.r9.u32, ctx.xer);
+	// blt cr6,0x822f6bd8
+	if (ctx.cr6.lt) goto loc_822F6BD8;
+loc_822F6C50:
+	// lwz r11,260(r5)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r5.u32 + 260);
+	// mr r10,r9
+	ctx.r10.u64 = ctx.r9.u64;
+	// li r8,7
+	ctx.r8.s64 = 7;
+	// li r3,0
+	ctx.r3.s64 = 0;
+	// rlwimi r10,r8,28,0,11
+	ctx.r10.u64 = (__builtin_rotateleft64(ctx.r8.u32 | (ctx.r8.u64 << 32), 28) & 0xFFF00000) | (ctx.r10.u64 & 0xFFFFFFFF000FFFFF);
+	// stw r10,0(r11)
+	REX_STORE_U32(ctx.r11.u32 + 0, ctx.r10.u32);
+	// lwz r11,260(r5)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r5.u32 + 260);
+	// stw r9,4(r11)
+	REX_STORE_U32(ctx.r11.u32 + 4, ctx.r9.u32);
+loc_822F6C70:
+	// b 0x824b1898
+	__restgprlr_28(ctx, base);
+	return;
+loc_822F6C74:
+	// li r3,1
+	ctx.r3.s64 = 1;
+	// b 0x822f6c70
+	goto loc_822F6C70;
+}
+
 DEFINE_REX_FUNC(sub_822F6C80) {
 	REX_FUNC_PROLOGUE();
 	uint32_t ea{};
