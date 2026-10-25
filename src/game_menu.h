@@ -1,0 +1,61 @@
+// In-game settings menu (shared across the darkuni recomps).
+//
+// Same layout and behaviour as the menus in the Contra / Castlevania / Gradius
+// ReBirth recomps (centred panel, "Label  < value >" rows, Up/Down to select,
+// Left/Right/Enter to change, note line at the bottom, settings saved on every
+// change), rebuilt on ReXGlue's ImGui overlay instead of raw OpenGL.
+//
+// Open/close: F1 or Esc.  Everything is stored in <app>.toml next to the
+// exe via ReXGlue's cvar system, so it is also editable by hand.
+
+#pragma once
+
+#include <filesystem>
+#include <functional>
+#include <string>
+
+#include <rex/ui/imgui_dialog.h>
+
+namespace recomp_ui {
+
+struct MenuHost {
+  std::string title;                         // shown as "<TITLE>  -  SETTINGS"
+  std::filesystem::path config_path;
+  std::function<void(bool)> set_fullscreen;  // live display-mode switch
+  std::function<void()> quit;                // close the game
+  std::function<void()> on_closed;           // menu closed itself (deleted)
+};
+
+class GameMenu : public rex::ui::ImGuiDialog {
+ public:
+  GameMenu(rex::ui::ImGuiDrawer* drawer, MenuHost host);
+  ~GameMenu() override;
+
+  // True while waiting for a key to bind; the app's F1/Esc binds stay quiet.
+  bool capturing() const { return capturing_ >= 0; }
+
+  // Default keyboard layout (written on first launch, and by "Reset keys").
+  static void ApplyDefaultKeys();
+
+ protected:
+  void OnDraw(ImGuiIO& io) override;
+  void OnClose() override;
+
+ private:
+  enum class Page { kMain, kKeys };
+
+  void DrawMain(float scale);
+  void DrawKeys(float scale);
+  void Change(int row, int dir);
+  void Save();
+
+  MenuHost host_;
+  Page page_ = Page::kMain;
+  int sel_ = 0;
+  int keys_sel_ = 0;
+  int capturing_ = -1;
+  bool quit_armed_ = false;
+  std::string status_;
+};
+
+}  // namespace recomp_ui

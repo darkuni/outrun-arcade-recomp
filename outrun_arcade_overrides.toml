@@ -1,0 +1,49 @@
+# Manual codegen overrides for OutRun Online Arcade (default.xex 0.0.1.5, 2009-04-03)
+
+[functions]
+# Functions only reachable through data pointers (vtables/callbacks): no bl
+# caller and no .pdata entry. Found by tools/scan_pointer_funcs.py.
+0x82193BF0 = {}
+0x821A68D0 = {}
+0x822806D8 = {}
+0x82281E5C = {}
+0x82281FD4 = {}
+0x822CE614 = {}
+0x822E63D8 = {}
+0x822E64E0 = {}
+0x822E6508 = {}
+0x822E6530 = {}
+0x822E6558 = {}
+0x822E6988 = {}
+0x8235F750 = {}
+0x82361A78 = {}
+0x82361AB4 = {}
+0x823624F8 = {}
+0x82362658 = {}
+0x8237C04C = {}
+0x8242A260 = {}
+0x8242A2B0 = {}
+0x82459D90 = {}
+0x824649A0 = {}
+0x824786B8 = {}
+0x8247D820 = {}
+0x8247D838 = {}
+0x82481760 = {}
+0x824817A8 = {}
+0x82486070 = {}
+0x82486090 = {}
+0x824860B0 = {}
+0x824860B8 = {}
+0x82486490 = {}
+0x82488010 = {}
+0x824883C0 = {}
+0x824883E8 = {}
+0x824883F0 = {}
+0x82488408 = {}
+0x82488410 = {}
+0x824BAEBC = {}
+0x824BCCF8 = {}
+0x824BCE70 = {}
+0x824BD1DC = {}
+0x824BD31C = {}
+0x824BD9DC = {}

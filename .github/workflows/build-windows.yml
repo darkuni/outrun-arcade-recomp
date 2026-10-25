@@ -1,0 +1,128 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REXGLUE_SDK_REF: v0.9.0
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install LLVM (clang 20+) and Ninja
+        shell: pwsh
+        run: |
+          choco install llvm ninja -y --no-progress
+          "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+      
+      - name: MSVC environment (headers/libs for clang)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Toolchain versions
+        shell: pwsh
+        run: |
+          clang++ --version
+          cmake --version
+          ninja --version
+
+      # ---------- ReXGlue SDK ----------
+      # 1) Prebuilt package from darkuni/rexglue-sdk-builds (fast path).
+      # 2) Fallback: this repo's cache, else compile the SDK here.
+      - name: Download prebuilt SDK
+        id: sdk-prebuilt
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $url = "https://github.com/darkuni/rexglue-sdk-builds/releases/download/sdk-$env:REXGLUE_SDK_REF/rexglue-sdk-$env:REXGLUE_SDK_REF-win-amd64-release.zip"
+          Invoke-WebRequest -Uri $url -OutFile sdk.zip
+          Expand-Archive sdk.zip -DestinationPath rexglue-sdk-install
+          Get-Content rexglue-sdk-install\BUILD_INFO.txt
+          "ok=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Restore SDK install cache
+        id: sdk-cache
+        if: steps.sdk-prebuilt.outputs.ok != 'true'
+        uses: actions/cache@v4
+        with:
+          path: rexglue-sdk-install
+          key: rexglue-sdk-${{ env.REXGLUE_SDK_REF }}-win-amd64-v2
+          restore-keys: |
+            rexglue-sdk-${{ env.REXGLUE_SDK_REF }}-win-amd64-
+
+      - name: Checkout ReXGlue SDK
+        if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
+        uses: actions/checkout@v4
+        with:
+          repository: rexglue/rexglue-sdk
+          ref: ${{ env.REXGLUE_SDK_REF }}
+          path: rexglue-sdk
+          submodules: recursive
+
+      - name: Build and install SDK
+        if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
+        shell: pwsh
+        working-directory: rexglue-sdk
+        run: |
+          cmake --preset win-amd64 `
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ `
+            -DREXGLUE_ENABLE_TRACY=OFF `
+            "-DCMAKE_INSTALL_PREFIX=$env:GITHUB_WORKSPACE/rexglue-sdk-install"
+          cmake --build out/build/win-amd64 --config Release --target install --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # ---------- Game ----------
+      - name: Compiler cache for generated code
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          variant: sccache
+          key: outrun-arcade-win-amd64
+
+      - name: Configure game
+        shell: pwsh
+        run: |
+          cmake -S . -B out -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ `
+            "-DCMAKE_C_FLAGS=-march=x86-64-v3" "-DCMAKE_CXX_FLAGS=-march=x86-64-v3" `
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache `
+            "-DCMAKE_PREFIX_PATH=$env:GITHUB_WORKSPACE/rexglue-sdk-install"
+
+      - name: Build game
+        shell: pwsh
+        run: |
+          cmake --build out --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Stage package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item out\outrun_arcade.exe dist\
+          Get-ChildItem out -Filter *.dll | Copy-Item -Destination dist\
+          Get-ChildItem "$env:GITHUB_WORKSPACE\rexglue-sdk-install\bin" -Filter *.dll -ErrorAction SilentlyContinue |
+            Where-Object { -not (Test-Path ("dist\" + $_.Name)) } | Copy-Item -Destination dist\
+          @"
+          OutRun Online Arcade - native Windows build (ReXGlue static recompilation)
+
+          Game files are NOT included. Copy the contents of your extracted
+          OutRun Online Arcade package (default.xex, the media folder, etc.)
+          into a folder named "assets" next to outrun_arcade.exe,
+          then run outrun_arcade.exe. (Or point at another folder with
+          --game_data_root=C:\path\to\files)
+          "@ | Out-File dist\README.txt -Encoding utf8
+          Get-ChildItem dist
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: outrun_arcade-win-amd64
+          path: dist/
