@@ -7,6 +7,8 @@ on:
 
 env:
   REXGLUE_SDK_REF: v0.9.0
+  # Prebuilt package from darkuni/rexglue-sdk-builds: SDK_REF + its patches/.
+  REXGLUE_SDK_PKG: v0.9.0-p1
 
 jobs:
   build:
@@ -42,7 +44,7 @@ jobs:
         shell: pwsh
         continue-on-error: true
         run: |
-          $url = "https://github.com/darkuni/rexglue-sdk-builds/releases/download/sdk-$env:REXGLUE_SDK_REF/rexglue-sdk-$env:REXGLUE_SDK_REF-win-amd64-release.zip"
+          $url = "https://github.com/darkuni/rexglue-sdk-builds/releases/download/sdk-$env:REXGLUE_SDK_PKG/rexglue-sdk-$env:REXGLUE_SDK_PKG-win-amd64-release.zip"
           Invoke-WebRequest -Uri $url -OutFile sdk.zip
           Expand-Archive sdk.zip -DestinationPath rexglue-sdk-install
           Get-Content rexglue-sdk-install\BUILD_INFO.txt
@@ -54,9 +56,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: rexglue-sdk-install
-          key: rexglue-sdk-${{ env.REXGLUE_SDK_REF }}-win-amd64-v2
-          restore-keys: |
-            rexglue-sdk-${{ env.REXGLUE_SDK_REF }}-win-amd64-
+          key: rexglue-sdk-${{ env.REXGLUE_SDK_PKG }}-win-amd64
 
       - name: Checkout ReXGlue SDK
         if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
@@ -67,11 +67,22 @@ jobs:
           path: rexglue-sdk
           submodules: recursive
 
+      - name: Checkout SDK patches
+        if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
+        uses: actions/checkout@v4
+        with:
+          repository: darkuni/rexglue-sdk-builds
+          path: sdk-builds
+
       - name: Build and install SDK
         if: steps.sdk-prebuilt.outputs.ok != 'true' && steps.sdk-cache.outputs.cache-matched-key == ''
         shell: pwsh
         working-directory: rexglue-sdk
         run: |
+          Get-ChildItem ..\sdk-builds\patches\*.patch | Sort-Object Name | ForEach-Object {
+            git apply --whitespace=nowarn $_.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
           cmake --preset win-amd64 `
             -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ `
             -DREXGLUE_ENABLE_TRACY=OFF `
