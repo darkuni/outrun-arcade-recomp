@@ -9,7 +9,7 @@ env:
   REXGLUE_SDK_REF: v0.9.0
   # Prebuilt package from darkuni/rexglue-sdk-builds. Stock SDK: the XMA decoder
   # experiments (p1-p3) did not change OutRun's race clicking, so rolled back.
-  REXGLUE_SDK_PKG: v0.9.0
+  REXGLUE_SDK_PKG: v0.9.0-p4
 
 jobs:
   build:
