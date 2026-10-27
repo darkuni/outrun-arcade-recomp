@@ -1,5 +1,6 @@
 // Diagnostic: trace the game's audio sample-rate converters (XAudio SRC
-// kernels, 0x824891D8-0x82491D40). Each call converts one voice's decoded
+// kernels). The 16 per-format dispatchers (0x82496DB8-0x82497A40) are
+// wrapped; each takes the voice's SRC state in r3. Each call converts one voice's decoded
 // PCM into the mixer's 256-sample float frame. Enabled with the environment
 // variable OUTRUN_SRC_TRACE=1; writes src_trace.bin in the working folder.
 //
@@ -36,6 +37,9 @@ std::FILE* g_f = nullptr;
 uint32_t g_seq = 0;
 int g_enabled = -1;
 
+// Only touch addresses in the guest's allocated heaps.
+bool ValidAddr(uint32_t a) { return a >= 0x40000000u && a < 0xFFFF0000u && (a & 3) == 0; }
+
 bool Enabled() {
   if (g_enabled < 0) {
     const char* e = std::getenv("OUTRUN_SRC_TRACE");
@@ -58,15 +62,15 @@ void Pre(PPCContext& ctx, uint8_t* base, uint32_t fn, Rec& r) {
   r.func = fn;
   r.t_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                std::chrono::steady_clock::now().time_since_epoch()).count();
-  r.r3 = ctx.r3.u32; r.r5 = ctx.r5.u32; r.r6 = ctx.r6.u32; r.r7 = ctx.r7.u32;
+  r.r3 = ctx.r3.u32; r.r5 = ctx.r5.u32; r.r6 = ctx.r6.u32; r.r7 = ctx.r3.u32;  // r7 field = state
   std::memset(r.out_first, 0, sizeof(r.out_first));
   std::memset(r.out_last, 0, sizeof(r.out_last));
   r.out_count = 0;
-  if (r.r7) CopyGuest(base, r.r7, r.before, 64);
+  if (ValidAddr(r.r7)) CopyGuest(base, r.r7, r.before, 64);
 }
 
 void Post(PPCContext& ctx, uint8_t* base, Rec& r) {
-  if (!r.r7) return;
+  if (!ValidAddr(r.r7)) return;
   CopyGuest(base, r.r7, r.after, 64);
   // Output position (samples) lives at state+28, the output base at +20.
   const uint32_t pos0 = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.before + 28));
@@ -74,8 +78,9 @@ void Post(PPCContext& ctx, uint8_t* base, Rec& r) {
   const uint32_t obase = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.after + 20));
   const uint32_t n = pos1 > pos0 ? pos1 - pos0 : 0;
   r.out_count = n;
-  if (n && obase) {
-    for (int p = 0; p < 2; p++) {
+  if (n && n <= 256 && ValidAddr(obase)) {
+    const uint32_t channels = r.after[13];
+    for (int p = 0; p < 2 && p < int(channels); p++) {
       const uint32_t plane = obase + p * 1024;
       for (uint32_t i = 0; i < 4 && i < n; i++) {
         r.out_first[p * 4 + i] = LdF(base, plane + (pos0 + i) * 4);
@@ -103,40 +108,19 @@ void Post(PPCContext& ctx, uint8_t* base, Rec& r) {
     Post(ctx, base, r);                                      \
   }
 
-SRC_WRAP(sub_824891D8, 0)
-SRC_WRAP(sub_82489440, 1)
-SRC_WRAP(sub_82489710, 2)
-SRC_WRAP(sub_82489AB0, 3)
-SRC_WRAP(sub_82489F50, 4)
-SRC_WRAP(sub_8248A0F8, 5)
-SRC_WRAP(sub_8248A2F8, 6)
-SRC_WRAP(sub_8248A528, 7)
-SRC_WRAP(sub_8248A7C0, 8)
-SRC_WRAP(sub_8248AAD0, 9)
-SRC_WRAP(sub_8248ADE8, 10)
-SRC_WRAP(sub_8248B1D8, 11)
-SRC_WRAP(sub_8248B888, 12)
-SRC_WRAP(sub_8248C180, 13)
-SRC_WRAP(sub_8248C408, 14)
-SRC_WRAP(sub_8248C6F0, 15)
-SRC_WRAP(sub_8248CAB0, 16)
-SRC_WRAP(sub_8248CF70, 17)
-SRC_WRAP(sub_8248D2D0, 18)
-SRC_WRAP(sub_8248D5B0, 19)
-SRC_WRAP(sub_8248D8D8, 20)
-SRC_WRAP(sub_8248DCD0, 21)
-SRC_WRAP(sub_8248E1D8, 22)
-SRC_WRAP(sub_8248E570, 23)
-SRC_WRAP(sub_8248E888, 24)
-SRC_WRAP(sub_8248EC20, 25)
-SRC_WRAP(sub_8248F0E8, 26)
-SRC_WRAP(sub_8248F718, 27)
-SRC_WRAP(sub_8248FAB8, 28)
-SRC_WRAP(sub_8248FDF0, 29)
-SRC_WRAP(sub_824901C8, 30)
-SRC_WRAP(sub_824906E8, 31)
-SRC_WRAP(sub_82490D80, 32)
-SRC_WRAP(sub_82491138, 33)
-SRC_WRAP(sub_82491468, 34)
-SRC_WRAP(sub_82491828, 35)
-SRC_WRAP(sub_82491D40, 36)
+SRC_WRAP(sub_82496DB8, 0)
+SRC_WRAP(sub_82496E90, 1)
+SRC_WRAP(sub_82496F68, 2)
+SRC_WRAP(sub_82497040, 3)
+SRC_WRAP(sub_82497118, 4)
+SRC_WRAP(sub_824971F0, 5)
+SRC_WRAP(sub_824972C8, 6)
+SRC_WRAP(sub_824973A0, 7)
+SRC_WRAP(sub_82497478, 8)
+SRC_WRAP(sub_82497548, 9)
+SRC_WRAP(sub_82497618, 10)
+SRC_WRAP(sub_824976E8, 11)
+SRC_WRAP(sub_824977B8, 12)
+SRC_WRAP(sub_82497890, 13)
+SRC_WRAP(sub_82497968, 14)
+SRC_WRAP(sub_82497A40, 15)
