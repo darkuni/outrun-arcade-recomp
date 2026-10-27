@@ -58,6 +58,8 @@ void CopyGuest(uint8_t* base, uint32_t a, uint8_t* dst, size_t n) {
   }
 }
 
+void ProbeStarve(uint8_t* base, const Rec& r);
+
 void Pre(PPCContext& ctx, uint8_t* base, uint32_t fn, Rec& r) {
   r.func = fn;
   r.t_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -89,6 +91,7 @@ void Post(PPCContext& ctx, uint8_t* base, Rec& r) {
     }
   }
   std::lock_guard<std::mutex> lk(g_mu);
+  ProbeStarve(base, r);
   if (!g_f) g_f = std::fopen("src_trace.bin", "wb");
   if (!g_f) return;
   r.seq = g_seq++;
@@ -96,6 +99,52 @@ void Post(PPCContext& ctx, uint8_t* base, Rec& r) {
   if ((g_seq & 1023) == 0) std::fflush(g_f);
 }
 
+
+// --- starvation probe ------------------------------------------------------
+// When a voice could not fill its 256-sample mix frame (it ran out of decoded
+// input), dump the XMA hardware context(s) whose output buffer holds that
+// voice's input, so we can see why the decoder had nothing ready.
+std::FILE* g_starve = nullptr;
+
+uint32_t VirtToPhys(uint32_t v) {
+  if (v >= 0xE0000000u) return v - 0xE0000000u - 0x1000u;
+  if (v >= 0xC0000000u) return v - 0xC0000000u;
+  if (v >= 0xA0000000u) return v - 0xA0000000u;
+  return 0xFFFFFFFFu;
+}
+
+void ProbeStarve(uint8_t* base, const Rec& r) {
+  const uint32_t opos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 28));
+  const uint32_t ocnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 24));
+  if (opos >= ocnt) return;  // frame filled: fine
+  const uint32_t in = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 0));
+  const uint32_t icnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 4));
+  const uint32_t ipos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 8));
+  const uint32_t arr_phys = REX_LOAD_U32(0x825CE0B0u);
+  if (!g_starve) g_starve = std::fopen("xma_starve.txt", "w");
+  if (!g_starve) return;
+  std::fprintf(g_starve, "%llu starve voice=%08X out %u/%u in=%08X pos %u/%u arr=%08X\n",
+               (unsigned long long)r.t_ns, r.r7, opos, ocnt, in, ipos, icnt, arr_phys);
+  if (!arr_phys || arr_phys > 0x1FFFFFFFu) return;
+  const uint32_t want = VirtToPhys(in);
+  for (uint32_t c = 0; c < 320; c++) {
+    const uint32_t ca = 0xA0000000u + arr_phys + c * 64;
+    const uint32_t d0 = REX_LOAD_U32(ca + 0), d1 = REX_LOAD_U32(ca + 4), d2 = REX_LOAD_U32(ca + 8);
+    const uint32_t optr = REX_LOAD_U32(ca + 28), d9 = REX_LOAD_U32(ca + 36);
+    const uint32_t blocks = (d0 >> 22) & 31;
+    if (!optr || !blocks) continue;
+    const bool hit = (want >= optr && want < optr + blocks * 256) ||
+                     (want + 0x1000 >= optr && want + 0x1000 < optr + blocks * 256);
+    if (!hit) continue;
+    std::fprintf(g_starve,
+                 "   ctx %u out=%08X blocks=%u wr=%u rd=%u out_valid=%u sdc=%u pad=%u stereo=%u "
+                 "in_valid=%u/%u in_rd=%u err=%u stop_when_done=%u intr_when_done=%u\n",
+                 c, optr, blocks, (d0 >> 27) & 31, d9 & 31, (d1 >> 31) & 1, (d1 >> 20) & 15,
+                 (d1 >> 24) & 7, (d1 >> 29) & 1, (d0 >> 20) & 1, (d0 >> 21) & 1, d2 & 0x3FFFFFF,
+                 (d2 >> 26) & 31, (d9 >> 30) & 1, (d9 >> 31) & 1);
+  }
+  std::fflush(g_starve);
+}
 }  // namespace
 
 #define SRC_WRAP(name, idx)                                  \
