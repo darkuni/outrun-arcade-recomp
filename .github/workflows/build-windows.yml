@@ -9,7 +9,7 @@ env:
   REXGLUE_SDK_REF: v0.9.0
   # Prebuilt package from darkuni/rexglue-sdk-builds. Stock SDK: the XMA decoder
   # experiments (p1-p3) did not change OutRun's race clicking, so rolled back.
-  REXGLUE_SDK_PKG: v0.9.0-p18
+  REXGLUE_SDK_PKG: v0.9.0-p19
 
 jobs:
   build:
@@ -129,6 +129,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item out\outrun_arcade.exe dist\
+          Copy-Item tools\xma_clips.txt dist\
           Get-ChildItem out -Filter *.dll | Copy-Item -Destination dist\
           Get-ChildItem "$env:GITHUB_WORKSPACE\rexglue-sdk-install\bin" -Filter *.dll -ErrorAction SilentlyContinue |
             Where-Object { -not (Test-Path ("dist\" + $_.Name)) } | Copy-Item -Destination dist\
