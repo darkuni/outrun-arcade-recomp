@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
+#include <unordered_map>
 
 namespace {
 
@@ -113,37 +114,55 @@ uint32_t VirtToPhys(uint32_t v) {
   return 0xFFFFFFFFu;
 }
 
-void ProbeStarve(uint8_t* base, const Rec& r) {
-  const uint32_t opos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 28));
-  const uint32_t ocnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 24));
-  if (opos >= ocnt) return;  // frame filled: fine
-  const uint32_t in = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 0));
-  const uint32_t icnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 4));
-  const uint32_t ipos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 8));
+struct VoiceInfo { uint32_t opos = 256, in = 0, ipos = 0, icnt = 0; uint64_t t = 0; };
+std::unordered_map<uint32_t, VoiceInfo> g_voices;
+
+void DumpContexts(uint8_t* base) {
   const uint32_t arr_phys = REX_LOAD_U32(0x825CE0B0u);
-  if (!g_starve) g_starve = std::fopen("xma_starve.txt", "w");
-  if (!g_starve) return;
-  std::fprintf(g_starve, "%llu starve voice=%08X out %u/%u in=%08X pos %u/%u arr=%08X\n",
-               (unsigned long long)r.t_ns, r.r7, opos, ocnt, in, ipos, icnt, arr_phys);
   if (!arr_phys || arr_phys > 0x1FFFFFFFu) return;
-  const uint32_t want = VirtToPhys(in);
   for (uint32_t c = 0; c < 320; c++) {
     const uint32_t ca = 0xA0000000u + arr_phys + c * 64;
     const uint32_t d0 = REX_LOAD_U32(ca + 0), d1 = REX_LOAD_U32(ca + 4), d2 = REX_LOAD_U32(ca + 8);
     const uint32_t optr = REX_LOAD_U32(ca + 28), d9 = REX_LOAD_U32(ca + 36);
     const uint32_t blocks = (d0 >> 22) & 31;
-    if (!optr || !blocks) continue;
-    const bool hit = (want >= optr && want < optr + blocks * 256) ||
-                     (want + 0x1000 >= optr && want + 0x1000 < optr + blocks * 256);
-    if (!hit) continue;
+    const uint32_t in_valid = (d0 >> 20) & 3;
+    if (!optr || !blocks || (!in_valid && !((d1 >> 31) & 1))) continue;
     std::fprintf(g_starve,
-                 "   ctx %u out=%08X blocks=%u wr=%u rd=%u out_valid=%u sdc=%u pad=%u stereo=%u "
-                 "in_valid=%u/%u in_rd=%u err=%u stop_when_done=%u intr_when_done=%u\n",
+                 "   ctx %u out=%08X blocks=%u wr=%u rd=%u out_valid=%u sdc=%u pad=%u st=%u "
+                 "in_valid=%u/%u in_rd=%u err=%u stop=%u intr=%u\n",
                  c, optr, blocks, (d0 >> 27) & 31, d9 & 31, (d1 >> 31) & 1, (d1 >> 20) & 15,
                  (d1 >> 24) & 7, (d1 >> 29) & 1, (d0 >> 20) & 1, (d0 >> 21) & 1, d2 & 0x3FFFFFF,
                  (d2 >> 26) & 31, (d9 >> 30) & 1, (d9 >> 31) & 1);
   }
-  std::fflush(g_starve);
+}
+
+// Called before each SRC call. A voice that starts a new mix frame while its
+// previous frame was left unfilled starved: log it with every active context.
+void ProbeStarve(uint8_t* base, const Rec& r) {
+  const uint32_t opos_b = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.before + 28));
+  const uint32_t opos_a = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 28));
+  auto& v = g_voices[r.r7];
+  const bool starved = opos_b == 0 && v.opos > 0 && v.opos < 256;
+  if (starved) {
+    if (!g_starve) g_starve = std::fopen("xma_starve.txt", "w");
+    if (g_starve) {
+      const uint32_t in = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.before + 0));
+      const uint32_t ipos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.before + 8));
+      const uint32_t icnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.before + 4));
+      std::fprintf(g_starve,
+                   "%llu STARVED voice=%08X frame stopped at %u/256 after %.1f ms; last chunk "
+                   "%08X pos %u/%u; resumes with %08X pos %u/%u\n",
+                   (unsigned long long)r.t_ns, r.r7, v.opos, (r.t_ns - v.t) / 1e6, v.in, v.ipos,
+                   v.icnt, in, ipos, icnt);
+      DumpContexts(base);
+      std::fflush(g_starve);
+    }
+  }
+  v.opos = opos_a;
+  v.t = r.t_ns;
+  v.in = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 0));
+  v.ipos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 8));
+  v.icnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 4));
 }
 }  // namespace
 
