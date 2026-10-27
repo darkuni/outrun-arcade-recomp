@@ -14,6 +14,7 @@ include(generated/rexglue.cmake)
 set(OUTRUNARCADE_SOURCES
     src/main.cpp
     src/game_menu.cpp
+    src/src_trace.cpp
 )
 
 if(WIN32)
