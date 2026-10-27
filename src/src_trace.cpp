@@ -21,6 +21,9 @@
 #include <cstring>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
+#include <algorithm>
+#include <cstdlib>
 
 namespace {
 
@@ -62,6 +65,7 @@ void CopyGuest(uint8_t* base, uint32_t a, uint8_t* dst, size_t n) {
 }
 
 void ProbeStarve(uint8_t* base, const Rec& r);
+void MaybeDumpChunk(uint8_t* base, const Rec& r);
 
 void Pre(PPCContext& ctx, uint8_t* base, uint32_t fn, Rec& r) {
   r.func = fn;
@@ -115,6 +119,7 @@ void Post(PPCContext& ctx, uint8_t* base, Rec& r) {
   }
   std::lock_guard<std::mutex> lk(g_mu);
   ProbeStarve(base, r);
+  MaybeDumpChunk(base, r);
   if (!g_f) g_f = std::fopen("src_trace.bin", "wb");
   if (!g_f) return;
   r.seq = g_seq++;
@@ -185,6 +190,39 @@ void ProbeStarve(uint8_t* base, const Rec& r) {
   v.in = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 0));
   v.ipos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 8));
   v.icnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 4));
+}
+
+// Dump whole input chunks (int16) that contain a sharp step near the read
+// position, so the block structure can be checked against clean decodes.
+std::FILE* g_chunks = nullptr;
+uint32_t g_chunk_dumps = 0;
+
+void MaybeDumpChunk(uint8_t* base, const Rec& r) {
+  if (g_chunk_dumps >= 400 || r.after[13] != 1) return;  // mono only
+  const uint32_t in = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 0));
+  const uint32_t cnt = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 4));
+  const uint32_t pos = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(r.after + 8));
+  if (!ValidAddr(in & ~3u) || cnt == 0 || cnt > 4096 || pos < 10) return;
+  int16_t x[16];
+  for (int i = 0; i < 16; i++) x[i] = int16_t((r.in_end16[2 * i] << 8) | r.in_end16[2 * i + 1]);
+  int maxd = 0, sumd = 0;
+  for (int i = 0; i < 15; i++) {
+    const int s = int(pos) - 8 + i;
+    if (s < 0 || s + 1 >= int(cnt)) continue;
+    const int d = std::abs(int(x[i + 1]) - int(x[i]));
+    maxd = std::max(maxd, d);
+    sumd += d;
+  }
+  if (maxd < 5000 || maxd * 15 < sumd * 6) return;  // need a step well above the local average
+  if (!g_chunks) g_chunks = std::fopen("src_chunks.bin", "wb");
+  if (!g_chunks) return;
+  const uint32_t hdr[6] = {0x4B4E4843u /*CHNK*/, r.r7, in, cnt, pos, uint32_t(r.t_ns / 1000000)};
+  std::fwrite(hdr, 4, 6, g_chunks);
+  std::vector<uint8_t> buf(((cnt * 2) + 3) & ~3u);
+  CopyGuest(base, in & ~3u, buf.data(), buf.size());
+  std::fwrite(buf.data(), 1, buf.size(), g_chunks);
+  std::fflush(g_chunks);
+  g_chunk_dumps++;
 }
 }  // namespace
 
