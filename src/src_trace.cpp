@@ -31,6 +31,8 @@ struct Rec {
   uint8_t before[64], after[64];
   float out_first[8], out_last[8];
   uint32_t out_count;
+  uint8_t in_end16[32], in_end32[32];  // input bytes around the end position (int16 / f32 views)
+  uint8_t in_beg16[32], in_beg32[32];  // same, around the start position, read before the call
 };
 
 std::mutex g_mu;
@@ -69,12 +71,32 @@ void Pre(PPCContext& ctx, uint8_t* base, uint32_t fn, Rec& r) {
   std::memset(r.out_first, 0, sizeof(r.out_first));
   std::memset(r.out_last, 0, sizeof(r.out_last));
   r.out_count = 0;
-  if (ValidAddr(r.r7)) CopyGuest(base, r.r7, r.before, 64);
+  if (ValidAddr(r.r7)) {
+    CopyGuest(base, r.r7, r.before, 64);
+    const uint32_t in = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.before + 0));
+    const uint32_t pos = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.before + 8));
+    const uint32_t ch = r.before[13] ? r.before[13] : 1;
+    std::memset(r.in_beg16, 0, 32); std::memset(r.in_beg32, 0, 32);
+    if (ValidAddr(in & ~3u) && pos > 4) {
+      CopyGuest(base, (in + pos * 2 * ch - 16) & ~3u, r.in_beg16, 32);
+      CopyGuest(base, (in + pos * 4 * ch - 16) & ~3u, r.in_beg32, 32);
+    }
+  }
 }
 
 void Post(PPCContext& ctx, uint8_t* base, Rec& r) {
   if (!ValidAddr(r.r7)) return;
   CopyGuest(base, r.r7, r.after, 64);
+  {
+    const uint32_t in = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.after + 0));
+    const uint32_t pos = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.after + 8));
+    const uint32_t ch = r.after[13] ? r.after[13] : 1;
+    std::memset(r.in_end16, 0, 32); std::memset(r.in_end32, 0, 32);
+    if (ValidAddr(in & ~3u) && pos > 4) {
+      CopyGuest(base, (in + pos * 2 * ch - 16) & ~3u, r.in_end16, 32);
+      CopyGuest(base, (in + pos * 4 * ch - 16) & ~3u, r.in_end32, 32);
+    }
+  }
   // Output position (samples) lives at state+28, the output base at +20.
   const uint32_t pos0 = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.before + 28));
   const uint32_t pos1 = __builtin_bswap32(*reinterpret_cast<uint32_t*>(r.after + 28));
