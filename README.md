@@ -44,4 +44,23 @@ Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), window 
 - No analysis errors on the first pass.
 - 44 functions reachable only through vtables/callbacks (`tools/scan_pointer_funcs.py`).
 
+## Audio fixes
+- **Engine pops** (SDK p22+, `xma_start_latency_us`, default 6000): a freshly
+  started XMA voice gets its first audio a few ms late, like the 360's
+  hardware decoder. The game starts engine voices loud and turns them down a
+  frame later; with instant decode that first loud frame was audible as a pop.
+- **Song-title callout cut off** (`src/callout_hold.cpp`,
+  `outrun_callout_hold_ms`, default 1000): after the song pick the front end
+  waits (state 62) for 75 loads, then stops all menu voices. Loads finish far
+  faster than on a 360, which cut the callout mid-word; the wait is held for
+  at least 1 s. `outrun_callout_trace = true` logs it to callout_trace.txt.
+- Known: the menu confirm sound is cut short when picking Single Player.
+
+## Diagnostics
+- Crash reporter: `crash-*.txt` + `.dmp` next to the exe; decode offsets with
+  `outrun_arcade.map` (shipped in the build).
+- SDK: `xma_trace`, `audio_dump`, `xma_dump`, `xma_mute`/`xma_solo` (clip
+  names from `xma_clips.txt`).
+- `tools/diagnostics/voice_trace.cpp` (not built): logs who destroys a voice.
+
 Not affiliated with or endorsed by SEGA or Microsoft.

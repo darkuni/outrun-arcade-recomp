@@ -29,6 +29,9 @@ REXCVAR_DEFINE_INT32(outrun_callout_hold_ms, 1000, "OutRun",
                      "menu sounds, so the song-title callout plays out (real-hardware load time). "
                      "0 = off");
 
+REXCVAR_DEFINE_BOOL(outrun_callout_trace, false, "OutRun",
+                    "Write callout_trace.txt (front-end state changes and the callout hold)");
+
 namespace {
 constexpr uint32_t kStateAddr = 0x828934A0;
 constexpr uint32_t kTableEntry0 = 0x8280FC8C;  // status word of entry 0
@@ -43,6 +46,7 @@ uint32_t g_last_state = 0xFFFFFFFF;
 int64_t g_state20_since = 0;
 
 void Log(const char* fmt, uint32_t a, int64_t b) {
+  if (!REXCVAR_GET(outrun_callout_trace)) return;
   static std::FILE* f = std::fopen("callout_trace.txt", "w");
   if (!f) return;
   std::fprintf(f, fmt, a, (long long)b);

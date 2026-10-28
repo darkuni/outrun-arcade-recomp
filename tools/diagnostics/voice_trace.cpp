@@ -1,3 +1,5 @@
+// Not built. Kept for reference: hook of the voice teardown (0x82475E58)
+// that logged the guest call stack; add to CMakeLists to use again.
 // Diagnostic: log every XAudio voice teardown (the function that releases a
 // voice's XMA contexts, 0x82475E58) with the guest call stack, so we can see
 // which game code stops a sound. Writes voice_trace.txt next to the exe.
