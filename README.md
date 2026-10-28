@@ -54,7 +54,12 @@ Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), window 
   waits (state 62) for 75 loads, then stops all menu voices. Loads finish far
   faster than on a 360, which cut the callout mid-word; the wait is held for
   at least 1 s. `outrun_callout_trace = true` logs it to callout_trace.txt.
-- Known: the menu confirm sound is cut short when picking Single Player.
+- **Single Player confirm sound cut off** (`src/voice_hooks.cpp`,
+  `outrun_keep_confirm`, default on): the game-mode task's init stops every
+  sound 16 frames after the pick; on a 360 the confirm sound survives that
+  stop (measured from real hardware). Stops from that init path skip voices
+  started in the last 600 ms. `outrun_voice_trace = true` writes
+  voice_api_trace.txt (every voice call, with callers).
 
 ## Diagnostics
 - Crash reporter: `crash-*.txt` + `.dmp` next to the exe; decode offsets with
