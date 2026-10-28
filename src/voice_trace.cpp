@@ -46,8 +46,12 @@ extern "C" void sub_82475E58(PPCContext& ctx, uint8_t* base) {
         if (!Valid(next) || next <= sp || next - sp > 0x10000 || next - sp0 > 0x80000) break;
         std::fprintf(g_f, " [%08X]", next);
         std::fflush(g_f);
-        std::fprintf(g_f, " %08X", Ld32(base, next - 8));
+        const uint32_t ret = Ld32(base, next - 8);
+        std::fprintf(g_f, " %08X", ret);
         std::fflush(g_f);
+        // The outermost frame's saved LR is 0 and its back chain is the top of
+        // the stack (unmapped above): stop before reading past it.
+        if (ret < 0x82000000u || ret >= 0x82B20000u) break;
         sp = next;
       }
       std::fprintf(g_f, "\n");
