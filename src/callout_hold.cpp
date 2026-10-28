@@ -7,8 +7,10 @@
 // the "SPLASH WAVE" callout. On a 360 those loads take over a second, so the
 // callout finishes first; here they finish almost at once and cut it off.
 //
-// State 8 stores 20 and falls straight into the state-20 check in the same
-// call, so the hold has to cover calls that start in state 8 as well.
+// The waiting actually happens in state 62 (same all-ready check), which then
+// falls through state 20 into the voice stop in one call; state 8 can fall
+// into 62 the same way. So the hold covers calls starting in 8, 62 and 20,
+// timed from when 62 (or 20) is first seen.
 //
 // Fix: keep state 20 waiting until it has lasted outrun_callout_hold_ms.
 // While holding, one table entry reads "not ready" for the duration of the
@@ -22,7 +24,7 @@
 #include <chrono>
 #include <cstdio>
 
-REXCVAR_DEFINE_INT32(outrun_callout_hold_ms, 1200, "OutRun",
+REXCVAR_DEFINE_INT32(outrun_callout_hold_ms, 1000, "OutRun",
                      "Minimum time the front end waits after the song pick before stopping the "
                      "menu sounds, so the song-title callout plays out (real-hardware load time). "
                      "0 = off");
@@ -56,11 +58,16 @@ extern "C" void sub_82152968(PPCContext& ctx, uint8_t* base) {
     Log("front-end state %u at %lld ms\n", state, now);
     g_last_state = state;
   }
-  if (state != 20 && state != 8) g_state20_since = 0;
+  const bool waiting = state == 8 || state == 62 || state == 20;
+  if (!waiting) g_state20_since = 0;
+  if ((state == 62 || state == 20) && g_state20_since == 0) {
+    g_state20_since = now;
+    Log("front-end hold starts in state %u at %lld ms\n", state, now);
+  }
 
   const int32_t hold = REXCVAR_GET(outrun_callout_hold_ms);
   bool held = false;
-  if ((state == 8 || state == 20) && hold > 0 &&
+  if (waiting && hold > 0 &&
       (g_state20_since == 0 || now - g_state20_since < hold) &&
       REX_LOAD_U32(kTableEntry0) == kReady) {
     REX_STORE_U32(kTableEntry0, 2);
@@ -73,11 +80,11 @@ extern "C" void sub_82152968(PPCContext& ctx, uint8_t* base) {
     REX_STORE_U32(kTableEntry0, kReady);
   }
   const uint32_t after = REX_LOAD_U32(kStateAddr);
-  if (after == 20 && g_state20_since == 0) {
+  if ((after == 62 || after == 20) && g_state20_since == 0) {
     g_state20_since = now;
     Log("front-end entered state %u at %lld ms (hold starts)\n", after, now);
   }
-  if (held && state == 20 && now - g_state20_since + 20 >= hold) {
+  if (held && g_state20_since && now - g_state20_since + 20 >= hold) {
     Log("front-end hold released in state %u at %lld ms\n", state, now);
   }
 }
