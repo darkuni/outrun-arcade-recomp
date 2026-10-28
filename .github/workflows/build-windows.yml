@@ -130,6 +130,7 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item out\outrun_arcade.exe dist\
           Copy-Item tools\xma_clips.txt dist\
+          Copy-Item out\outrun_arcade.map dist\ -ErrorAction SilentlyContinue
           Get-ChildItem out -Filter *.dll | Copy-Item -Destination dist\
           Get-ChildItem "$env:GITHUB_WORKSPACE\rexglue-sdk-install\bin" -Filter *.dll -ErrorAction SilentlyContinue |
             Where-Object { -not (Test-Path ("dist\" + $_.Name)) } | Copy-Item -Destination dist\

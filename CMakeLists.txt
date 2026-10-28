@@ -16,6 +16,7 @@ set(OUTRUNARCADE_SOURCES
     src/game_menu.cpp
     src/src_trace.cpp
     src/voice_trace.cpp
+    src/crash_handler.cpp
 )
 
 if(WIN32)
@@ -25,3 +26,9 @@ else()
 endif()
 
 rexglue_setup_target(outrun_arcade GPU_PLUGINS xenos)
+
+# Linker map: turns crash-report offsets (outrun_arcade.exe+0x...) into
+# recompiled function names.
+if(WIN32)
+    target_link_options(outrun_arcade PRIVATE "LINKER:/MAP:${CMAKE_BINARY_DIR}/outrun_arcade.map")
+endif()
