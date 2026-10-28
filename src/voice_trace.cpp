@@ -36,10 +36,13 @@ extern "C" void sub_82475E58(PPCContext& ctx, uint8_t* base) {
 #endif
       std::fprintf(g_f, "%02d:%02d:%02d.%03d release voice=%08X lr=%08X stack:", lt.tm_hour,
                    lt.tm_min, lt.tm_sec, int(ms % 1000), ctx.r3.u32, uint32_t(ctx.lr));
-      uint32_t sp = ctx.r1.u32;
+      // Walk only inside this thread's stack: each back-chain link must move
+      // up by less than 64 KB and stay within 512 KB of the starting frame.
+      const uint32_t sp0 = ctx.r1.u32;
+      uint32_t sp = sp0;
       for (int i = 0; i < 20 && Valid(sp); i++) {
         const uint32_t next = Ld32(base, sp);
-        if (!Valid(next) || next <= sp) break;
+        if (!Valid(next) || next <= sp || next - sp > 0x10000 || next - sp0 > 0x80000) break;
         std::fprintf(g_f, " %08X", Ld32(base, next - 8));
         sp = next;
       }
