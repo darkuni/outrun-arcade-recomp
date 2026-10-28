@@ -1,7 +1,7 @@
 // Song-title callout fix.
 //
 // After you tune the radio, the front end's state machine (sub_82152968,
-// state word 0x82893490) sits in state 20 until all 75 entries of a load
+// state word 0x828934A0) sits in state 20 until all 75 entries of a load
 // table (0x8280FC8C, 44-byte stride, status word == 3 when done) report
 // ready, then calls sub_82102AF8, which stops the menu voices - including
 // the "SPLASH WAVE" callout. On a 360 those loads take over a second, so the
@@ -28,7 +28,7 @@ REXCVAR_DEFINE_INT32(outrun_callout_hold_ms, 1200, "OutRun",
                      "0 = off");
 
 namespace {
-constexpr uint32_t kStateAddr = 0x82893490;
+constexpr uint32_t kStateAddr = 0x828934A0;
 constexpr uint32_t kTableEntry0 = 0x8280FC8C;  // status word of entry 0
 constexpr uint32_t kReady = 3;
 
