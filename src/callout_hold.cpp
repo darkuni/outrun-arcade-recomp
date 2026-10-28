@@ -7,6 +7,9 @@
 // the "SPLASH WAVE" callout. On a 360 those loads take over a second, so the
 // callout finishes first; here they finish almost at once and cut it off.
 //
+// State 8 stores 20 and falls straight into the state-20 check in the same
+// call, so the hold has to cover calls that start in state 8 as well.
+//
 // Fix: keep state 20 waiting until it has lasted outrun_callout_hold_ms.
 // While holding, one table entry reads "not ready" for the duration of the
 // state machine call only (and only if it was already ready), so the game
@@ -38,7 +41,7 @@ uint32_t g_last_state = 0xFFFFFFFF;
 int64_t g_state20_since = 0;
 
 void Log(const char* fmt, uint32_t a, int64_t b) {
-  static std::FILE* f = std::fopen("voice_trace.txt", "a");
+  static std::FILE* f = std::fopen("callout_trace.txt", "w");
   if (!f) return;
   std::fprintf(f, fmt, a, (long long)b);
   std::fflush(f);
@@ -52,12 +55,13 @@ extern "C" void sub_82152968(PPCContext& ctx, uint8_t* base) {
   if (state != g_last_state) {
     Log("front-end state %u at %lld ms\n", state, now);
     g_last_state = state;
-    if (state == 20) g_state20_since = now;
   }
+  if (state != 20 && state != 8) g_state20_since = 0;
 
   const int32_t hold = REXCVAR_GET(outrun_callout_hold_ms);
   bool held = false;
-  if (state == 20 && hold > 0 && now - g_state20_since < hold &&
+  if ((state == 8 || state == 20) && hold > 0 &&
+      (g_state20_since == 0 || now - g_state20_since < hold) &&
       REX_LOAD_U32(kTableEntry0) == kReady) {
     REX_STORE_U32(kTableEntry0, 2);
     held = true;
@@ -67,5 +71,13 @@ extern "C" void sub_82152968(PPCContext& ctx, uint8_t* base) {
 
   if (held && REX_LOAD_U32(kTableEntry0) == 2) {
     REX_STORE_U32(kTableEntry0, kReady);
+  }
+  const uint32_t after = REX_LOAD_U32(kStateAddr);
+  if (after == 20 && g_state20_since == 0) {
+    g_state20_since = now;
+    Log("front-end entered state %u at %lld ms (hold starts)\n", after, now);
+  }
+  if (held && state == 20 && now - g_state20_since + 20 >= hold) {
+    Log("front-end hold released in state %u at %lld ms\n", state, now);
   }
 }
