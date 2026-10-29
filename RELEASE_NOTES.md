@@ -9,4 +9,6 @@ Audio fixes in this build (all on by default):
 
 Settings: F1 or Esc. Crash reports: `crash-*.txt` + `.dmp` next to the exe; `outrun_arcade.map` decodes them.
 
+Steam Deck: texture filtering is turned off and the small audio buffer is selected automatically on first launch (60 fps on Deck with these).
+
 Known: one tester (Ryzen 5 5600X / RTX 3060 Ti) sees uneven frame pacing in races; not reproduced elsewhere.

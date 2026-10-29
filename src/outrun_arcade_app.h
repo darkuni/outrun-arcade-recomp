@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstdlib>
 #include <filesystem>
 #include <string>
 
@@ -78,6 +79,17 @@ class OutrunArcadeApp : public rex::ReXApp {
                                std::to_string(recomp_ui::game_keys::kDefaultAudioFrames));
       rex::cvar::SetFlagByName("recomp_defaults_version", "2");
       if (!config_path_.empty()) rex::cvar::SaveConfig(config_path_);
+    }
+    // Steam Deck (Steam sets SteamDeck=1, also under Proton): texture
+    // filtering off and the small audio buffer, applied once. Tested on a
+    // Deck: choppy with the PC defaults, 60 fps with these.
+    const char* deck = std::getenv("SteamDeck");
+    if (deck && deck[0] == '1' && rex::cvar::Query<int32_t>("recomp_defaults_version") < 3) {
+      rex::cvar::SetFlagByName("anisotropic_override", "0");
+      rex::cvar::SetFlagByName("audio_maxqframes", "8");
+      rex::cvar::SetFlagByName("recomp_defaults_version", "3");
+      if (!config_path_.empty()) rex::cvar::SaveConfig(config_path_);
+      REXLOG_INFO("Steam Deck detected: texture filtering off, small audio buffer");
     }
     REXLOG_INFO("Audio buffer: {} frames", rex::cvar::Query<int32_t>("audio_maxqframes"));
   }
