@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       sdk_pkg:
@@ -149,13 +151,35 @@ jobs:
             Where-Object { -not (Test-Path ("dist\" + $_.Name)) } | Copy-Item -Destination dist\
           @"
           OutRun Online Arcade - native Windows build (ReXGlue static recompilation)
+          https://github.com/darkuni/outrun-arcade-recomp
 
-          Game files are NOT included. Copy the contents of your extracted
-          OutRun Online Arcade package (default.xex, the media folder, etc.)
-          into a folder named "assets" next to outrun_arcade.exe,
-          then run outrun_arcade.exe. (Or point at another folder with
-          --game_data_root=C:\path\to\files)
+          Game files are NOT included. You need your own OutRun Online Arcade XBLA package
+          (the Xbox 360 LIVE file from your console's storage).
+
+          Setup (once)
+            1. Install Python 3 from python.org (tick "Add python.exe to PATH").
+            2. Drag your package file onto extract-package.bat. It creates the "assets" folder.
+               (Already extracted? Copy default.xex, the media folder, etc. into "assets" instead.)
+            3. Run outrun_arcade.exe. If Windows says a DLL (e.g. VCRUNTIME140.dll) is missing,
+               install the Microsoft Visual C++ Redistributable 2015-2022 (x64): https://aka.ms/vs/17/release/vc_redist.x64.exe
+
+          F1 / Esc: settings (display mode, resolution, VSync, aspect, filtering, audio buffer, keys). F11: fullscreen.
+          F3: performance overlay. Settings are saved in outrun_arcade.toml.
+          Controls: left stick / Left Right = steer, RT / Up = accelerate, LT / Down = brake,
+          A B X Y / Z X A S, LB RB / Q W, d-pad / I J K L, Start / Enter, Back / Backspace.
+          Crash reports: crash-*.txt + .dmp next to the exe (outrun_arcade.map decodes them).
+
+          Unofficial fan project, not affiliated with or endorsed by SEGA, Sumo Digital or Microsoft. The exe
+          contains code machine-translated from the game's executable; game data comes from your own package.
+          ReXGlue SDK: BSD-3-Clause (portions from Xenia) - see licenses\.
           "@ | Out-File dist\README.txt -Encoding utf8
+          Copy-Item dist-files\extract-package.bat dist\
+          New-Item -ItemType Directory -Force dist\tools, dist\licenses | Out-Null
+          Copy-Item tools\stfs_extract.py dist\tools\
+          Copy-Item LICENSE dist\licenses\outrun-arcade-recomp-LICENSE.txt
+          if (Test-Path "$env:GITHUB_WORKSPACE\rexglue-sdk-install\share\licenses") {
+            Copy-Item -Recurse "$env:GITHUB_WORKSPACE\rexglue-sdk-install\share\licenses\*" dist\licenses\
+          }
           Get-ChildItem dist
 
       - name: Upload build
@@ -172,5 +196,14 @@ jobs:
         run: |
           $tag = "${{ inputs.release_tag }}"
           if (-not $tag) { $tag = "${{ github.ref_name }}" }
-          Compress-Archive -Path dist\* -DestinationPath "outrun_arcade-$tag-win-amd64.zip" -Force
-          gh release create $tag "outrun_arcade-$tag-win-amd64.zip" --repo ${{ github.repository }} --target ${{ github.sha }} --prerelease --title "OutRun Online Arcade $tag" --notes-file RELEASE_NOTES.md
+          $zip = "outrun_arcade-$tag-win-amd64.zip"
+          Compress-Archive -Path dist\* -DestinationPath $zip -Force
+          # A release published from the GitHub page already exists: attach the zip to it.
+          # Otherwise (tag pushed, or release_tag input) create a prerelease as before.
+          gh release view $tag --repo ${{ github.repository }} *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zip --clobber --repo ${{ github.repository }}
+          } else {
+            gh release create $tag $zip --repo ${{ github.repository }} --target ${{ github.sha }} --prerelease --title "OutRun Online Arcade $tag" --notes-file RELEASE_NOTES.md
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

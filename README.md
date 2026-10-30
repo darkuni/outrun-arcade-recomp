@@ -1,11 +1,20 @@
-# OutRun Online Arcade Recompiled (private)
+# OutRun Online Arcade Recompiled
 
 Static recompilation of **OutRun Online Arcade** (Xbox 360 XBLA, SEGA / Sumo Digital, 2009; Title ID 58410968, default.xex 0.0.1.5 built 2009-04-03) to native Windows, using the [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk) v0.9.0.
 
-**Private repo.** `generated/` is the game's own PowerPC code machine-translated to C++. No game data is committed - you supply your own dump.
+**No game data is included.** You need your own OutRun Online Arcade XBLA package (the Xbox 360 LIVE file from your
+console's storage).
 
-## Getting a build
-GitHub Actions builds on every push to `main` (or run **Build Windows** by hand from the Actions tab). Download the artifact from the run, unzip it, and put your extracted game files in an `assets` folder next to the exe:
+## Download
+Get the latest `outrun_arcade-<version>-win-amd64.zip` from [Releases](https://github.com/darkuni/outrun-arcade-recomp/releases),
+unzip it, drag your package file onto `extract-package.bat` (needs [Python 3](https://www.python.org/downloads/)) and run
+`outrun_arcade.exe`. Requirements: 64-bit Windows 10/11 and the
+[Microsoft Visual C++ Redistributable 2015-2022 (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+
+## Building
+GitHub Actions builds on every push to `main` (or run **Build Windows** by hand from the Actions tab); publishing a
+release (or pushing a `v*` tag) attaches the zip to it. Unzip a build and put your extracted game files in an `assets`
+folder next to the exe (`tools/stfs_extract.py <package> assets` extracts the package):
 
 ```
 outrun_arcade.exe
@@ -68,4 +77,10 @@ Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), window 
   names from `xma_clips.txt`).
 - `tools/diagnostics/voice_trace.cpp` (not built): logs who destroys a voice.
 
-Not affiliated with or endorsed by SEGA or Microsoft.
+
+## Disclaimer
+Unofficial fan project, not affiliated with or endorsed by SEGA, Sumo Digital or Microsoft. This repository and its
+releases contain no game data (graphics, sound, music, tracks): those come from your own package. `generated/` and the
+release exe contain code machine-translated from the game's executable. The project's own code is under the
+[MIT License](LICENSE); the ReXGlue SDK is BSD-3-Clause (portions derived from Xenia), and its licenses ship in the
+release zip.
