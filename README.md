@@ -7,8 +7,8 @@ console's storage).
 
 ## Download
 Get the latest `outrun_arcade-<version>-win-amd64.zip` from [Releases](https://github.com/darkuni/outrun-arcade-recomp/releases),
-unzip it, drag your package file onto `extract-package.bat` (needs [Python 3](https://www.python.org/downloads/)) and run
-`outrun_arcade.exe`. Requirements: 64-bit Windows 10/11 and the
+unzip it, put your package file (or the `58410968` folder copied from the console) in the same folder and run
+`outrun_arcade.exe`: the first start makes the `assets` folder from it. Nothing else to install. Requirements: 64-bit Windows 10/11 and the
 [Microsoft Visual C++ Redistributable 2015-2022 (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 
 ## Building

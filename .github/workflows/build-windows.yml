@@ -156,12 +156,13 @@ jobs:
           Game files are NOT included. You need your own OutRun Online Arcade XBLA package
           (the Xbox 360 LIVE file from your console's storage).
 
-          Setup (once)
-            1. Install Python 3 from python.org (tick "Add python.exe to PATH").
-            2. Drag your package file onto extract-package.bat. It creates the "assets" folder.
-               (Already extracted? Copy default.xex, the media folder, etc. into "assets" instead.)
-            3. Run outrun_arcade.exe. If Windows says a DLL (e.g. VCRUNTIME140.dll) is missing,
-               install the Microsoft Visual C++ Redistributable 2015-2022 (x64): https://aka.ms/vs/17/release/vc_redist.x64.exe
+          Setup
+            Put your package file in this folder and run outrun_arcade.exe. On the first start it makes
+            the "assets" folder from it; after that the package isn't needed any more. The package can be
+            the file on its own or the whole folder copied from the console (58410968\000D0000\...).
+            (Already extracted? Put default.xex, the media folder, etc. in an "assets" folder instead.)
+            If Windows says a DLL (e.g. VCRUNTIME140.dll) is missing, install the Microsoft Visual C++
+            Redistributable 2015-2022 (x64): https://aka.ms/vs/17/release/vc_redist.x64.exe
 
           F1 / Esc: settings (display mode, resolution, VSync, aspect, filtering, audio buffer, keys). F11: fullscreen.
           F3: performance overlay. Settings are saved in outrun_arcade.toml.
@@ -173,9 +174,7 @@ jobs:
           contains code machine-translated from the game's executable; game data comes from your own package.
           ReXGlue SDK: BSD-3-Clause (portions from Xenia) - see licenses\.
           "@ | Out-File dist\README.txt -Encoding utf8
-          Copy-Item dist-files\extract-package.bat dist\
-          New-Item -ItemType Directory -Force dist\tools, dist\licenses | Out-Null
-          Copy-Item tools\stfs_extract.py dist\tools\
+          New-Item -ItemType Directory -Force dist\licenses | Out-Null
           Copy-Item LICENSE dist\licenses\outrun-arcade-recomp-LICENSE.txt
           if (Test-Path "$env:GITHUB_WORKSPACE\rexglue-sdk-install\share\licenses") {
             Copy-Item -Recurse "$env:GITHUB_WORKSPACE\rexglue-sdk-install\share\licenses\*" dist\licenses\

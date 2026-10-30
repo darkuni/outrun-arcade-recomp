@@ -1,6 +1,6 @@
 OutRun Online Arcade - native Windows build (ReXGlue static recompilation). Release candidate.
 
-Game files are not included: put the contents of your extracted OutRun Online Arcade package in a folder named `assets` next to `outrun_arcade.exe`. Needs the Microsoft Visual C++ Redistributable 2015-2022 (x64).
+Game files are not included: put your own OutRun Online Arcade XBLA package (or the `58410968` folder copied from the console) next to `outrun_arcade.exe` and run it - the first start makes the `assets` folder from it. Needs the Microsoft Visual C++ Redistributable 2015-2022 (x64).
 
 Audio fixes in this build (all on by default):
 - Engine pops: a newly started XMA voice gets its first audio 6 ms late, like the 360 hardware decoder (SDK `xma_start_latency_us`).

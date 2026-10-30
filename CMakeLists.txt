@@ -18,6 +18,7 @@ set(OUTRUNARCADE_SOURCES
     src/crash_handler.cpp
     src/callout_hold.cpp
     src/voice_hooks.cpp
+    src/package_setup.cpp
 )
 
 if(WIN32)
