@@ -29,7 +29,7 @@ The same recompiled code builds as a native Linux executable. On Linux the SDK's
 Vulkan-only (D3D12 is compiled out), so nothing needs picking: the game renders through Vulkan. No Wine/Proton.
 
 **Status:** builds with no source changes to the recompiled code; boots, extracts the package on first start
-and runs the attract-mode race with correct graphics (audio system starts; sound not yet checked by ear).
+and plays with correct graphics and sound; saving and loading work.
 Tested on CachyOS (Arch), clang 22, AMD Radeon
 8060S (RADV, Mesa), KDE Plasma Wayland (through Xwayland). Not yet tested: NVIDIA, Steam Deck native, full
 playthroughs.
