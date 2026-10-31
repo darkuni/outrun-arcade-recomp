@@ -29,6 +29,7 @@ void InstallCrashHandler();  // src/crash_handler.cpp
 #include "game_keys.h"
 #include "game_menu.h"
 #include "package_setup.h"
+#include "portable_data.h"
 
 class OutrunArcadeApp : public rex::ReXApp {
  public:
@@ -53,6 +54,8 @@ class OutrunArcadeApp : public rex::ReXApp {
         std::exit(1);
       }
     }
+    // Saves, profile and shader cache in "userdata" next to the exe.
+    UsePortableUserData(paths, "outrun_arcade");
     config_path_ = paths.config_path;
   }
 

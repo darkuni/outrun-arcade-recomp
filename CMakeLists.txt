@@ -20,6 +20,7 @@ set(OUTRUNARCADE_SOURCES
     src/callout_hold.cpp
     src/voice_hooks.cpp
     src/package_setup.cpp
+    src/portable_data.cpp
 )
 
 if(WIN32)

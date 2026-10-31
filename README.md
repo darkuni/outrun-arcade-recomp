@@ -41,6 +41,13 @@ Keyboard, mouse or gamepad (d-pad / left stick, A or Start = select, B = back), 
 New installs start **fullscreen** (borderless, at the monitor's native resolution) with Auto render resolution;
 existing `outrun_arcade.toml` settings are kept.
 
+## Saves
+Saves, profile, achievements and the shader cache are kept in `userdata/` next to the exe, so the whole game
+folder is portable (copy it and your progress comes along). On the first start of this build an existing
+per-user folder from earlier builds (`Documents\outrun_arcade` on Windows, `~/.local/share/outrun_arcade` on
+Linux) is copied into `userdata/`; the original is left in place. If the game folder is not writable (e.g.
+Program Files) the per-user folder is used as before. `--user_data_root=<dir>` overrides both.
+
 ## In-game settings (F1 or Esc)
 Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), monitor, window size, render resolution, VSync, aspect ratio, texture filtering, audio buffer, keyboard on/off, launcher on/off, per-button key rebinding, quit. Saved to `outrun_arcade.toml` next to the exe. F3 = performance overlay. Gamepad works in the menu too (B closes it). Runs as the full game.
 
@@ -63,6 +70,7 @@ Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), monitor
 | `generated/` | Recompiled C++ output of `rexglue codegen` |
 | `src/outrun_arcade_app.h` | App class - game folder default, Xenos GPU plugin, full-game license, first-launch defaults, launcher, menu/F11 binds |
 | `src/game_menu.*`, `src/game_keys.h` | Launcher + F1/Esc settings menu and this game's key layout |
+| `src/portable_data.*` | Saves / profile / shader cache in `userdata/` next to the exe (copies old per-user saves once) |
 | `src/display_setup.*` | Monitor list / native resolution, Auto render resolution, live window move and resize |
 | `tools/` | Package/XEX extraction (STFS, XEX2 basic + LZX), pointer-function scan, label check |
 | `.github/workflows/build-windows.yml` | CI: LLVM + SDK (cached) + game, uploads exe + DLLs |
