@@ -280,3 +280,39 @@ bool package_setup_first_run(const fs::path& exe_dir, const fs::path& assets, ui
                           "and the other game files in an \"assets\" folder next to the exe.)", true);
   return false;
 }
+
+bool xex_version_check(const fs::path& assets, const char* expected_sha1_hex, uint64_t expected_size,
+                       const std::string& game) {
+  const fs::path xex = assets / "default.xex";
+  std::error_code ec;
+  if (!fs::exists(xex, ec)) return true;  // the normal "game files not found" path handles this
+  const uint64_t size = fs::file_size(xex, ec);
+  std::string got = "(unreadable)";
+  bool ok = false;
+  if (!ec) {
+    std::vector<uint8_t> data(static_cast<size_t>(size));
+    FILE* f = fopen(xex.string().c_str(), "rb");
+    if (f) {
+      const size_t n = fread(data.data(), 1, data.size(), f);
+      fclose(f);
+      if (n == data.size()) {
+        uint8_t h[20];
+        sha1(data.data(), data.size(), h);
+        char hex[41];
+        for (int i = 0; i < 20; i++) snprintf(hex + i * 2, 3, "%02x", h[i]);
+        got = hex;
+        ok = size == expected_size && got == expected_sha1_hex;
+      }
+    }
+  }
+  if (ok) return true;
+  show_message(game,
+               "This build needs a different version of the game files.\n\n"
+               "It was made from " + game + " with a default.xex of " + std::to_string(expected_size) +
+                   " bytes (SHA-1 " + expected_sha1_hex + ").\n\n"
+               "Your default.xex is " + std::to_string(size) + " bytes (SHA-1 " + got + ").\n\n"
+               "This usually means a title update is applied, or the files come from another "
+               "release. Use the original, unpatched game files.",
+               true);
+  return false;
+}

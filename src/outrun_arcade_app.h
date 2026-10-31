@@ -49,6 +49,10 @@ class OutrunArcadeApp : public rex::ReXApp {
         std::exit(1);
       }
     }
+    // Only the exact executable this build was recompiled from can run.
+    if (!xex_version_check(paths.game_data_root, "1565350edb6093f872adeb1758af0d2354488553", 2371584u, "OutRun Online Arcade")) {
+      std::exit(1);
+    }
     config_path_ = paths.config_path;
   }
 
