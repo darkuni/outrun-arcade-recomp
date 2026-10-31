@@ -182,5 +182,11 @@ struct Installer {
 void InstallCrashHandler() { SetUnhandledExceptionFilter(CrashFilter); }
 
 #else
+// Linux/macOS: no report writer. The SDK owns SIGSEGV/SIGILL (guest MMIO and
+// write-watch traps, SEH emulation) and falls back to SIG_DFL for faults it
+// does not handle, so an unhandled crash ends in a normal core dump
+// (`coredumpctl gdb outrun_arcade`); outrun_arcade.map maps its addresses to
+// recompiled functions. Installing a handler here would sit in front of the
+// SDK's and break those traps.
 void InstallCrashHandler() {}
 #endif
