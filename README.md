@@ -24,6 +24,20 @@ assets\
   ...
 ```
 
+## In-game settings (F1 or Esc)
+Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), monitor, window size, render resolution, VSync, aspect ratio, texture filtering, audio buffer, keyboard on/off, launcher on/off, per-button key rebinding, quit. Saved to `outrun_arcade.toml` next to the exe. F3 = performance overlay. Gamepad works in the menu too (B closes it). Runs as the full game.
+
+### Default keyboard layout
+| Action | Controller | Key |
+|---|---|---|
+| Steer | Left stick | Left / Right |
+| Accelerate | RT (+ stick up) | Up |
+| Brake | LT (+ stick down) | Down |
+| A / B / X / Y | A / B / X / Y | Z / X / A / S |
+| LB / RB | LB / RB | Q / W |
+| D-pad | D-pad | I / J / K / L |
+| Start / Back | Start / Back | Enter / Backspace |
+
 ## Launcher
 Before the game starts, a launcher screen in the game window sets up the display and controls, then **Start game**
 runs it. Same look and rows as the F1 menu, plus:
@@ -47,20 +61,6 @@ folder is portable (copy it and your progress comes along). On the first start o
 per-user folder from earlier builds (`Documents\outrun_arcade` on Windows, `~/.local/share/outrun_arcade` on
 Linux) is copied into `userdata/`; the original is left in place. If the game folder is not writable (e.g.
 Program Files) the per-user folder is used as before. `--user_data_root=<dir>` overrides both.
-
-## In-game settings (F1 or Esc)
-Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), monitor, window size, render resolution, VSync, aspect ratio, texture filtering, audio buffer, keyboard on/off, launcher on/off, per-button key rebinding, quit. Saved to `outrun_arcade.toml` next to the exe. F3 = performance overlay. Gamepad works in the menu too (B closes it). Runs as the full game.
-
-### Default keyboard layout
-| Action | Controller | Key |
-|---|---|---|
-| Steer | Left stick | Left / Right |
-| Accelerate | RT (+ stick up) | Up |
-| Brake | LT (+ stick down) | Down |
-| A / B / X / Y | A / B / X / Y | Z / X / A / S |
-| LB / RB | LB / RB | Q / W |
-| D-pad | D-pad | I / J / K / L |
-| Start / Back | Start / Back | Enter / Backspace |
 
 ## Layout
 | Path | What |
