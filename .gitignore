@@ -5,3 +5,4 @@ assets/
 out/
 build/
 dist/
+dist-linux/

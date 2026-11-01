@@ -1,0 +1,70 @@
+name: Build Linux
+
+on:
+  push:
+    branches: [main, linux-vulkan]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  REXGLUE_SDK_REF: v0.9.0
+  # Bump when darkuni/rexglue-sdk-builds patches/ change (cache key).
+  REXGLUE_PATCH_LEVEL: p23
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install clang 20
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y clang-20 lld-20
+
+      # Same packages the SDK's own linux-amd64 CI uses.
+      - name: Install build deps
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build build-essential git curl unzip autoconf python3.12-venv \
+            libgtk-3-dev libx11-xcb-dev libxss-dev vulkan-sdk \
+            libasound2-dev libpulse-dev libpipewire-0.3-dev
+
+      - name: Restore SDK install cache
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: out/linux-deps/rexglue-sdk-install
+          key: rexglue-sdk-${{ env.REXGLUE_SDK_REF }}-${{ env.REXGLUE_PATCH_LEVEL }}-${{ hashFiles('patches/sdk/**') }}-linux-amd64
+
+      - name: Compiler cache for generated code
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          variant: sccache
+          key: outrun-arcade-linux-amd64
+
+      - name: Build SDK + game
+        env:
+          CC: clang-20
+          CXX: clang++-20
+          CMAKE_C_COMPILER_LAUNCHER: sccache
+          CMAKE_CXX_COMPILER_LAUNCHER: sccache
+        run: tools/build_linux.sh
+
+      - name: Package
+        run: tar -C dist-linux -czf outrun_arcade-linux-amd64.tar.gz .
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: outrun_arcade-linux-amd64
+          path: outrun_arcade-linux-amd64.tar.gz

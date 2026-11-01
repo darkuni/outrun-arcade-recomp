@@ -33,4 +33,13 @@ rexglue_setup_target(outrun_arcade GPU_PLUGINS xenos)
 # recompiled function names.
 if(WIN32)
     target_link_options(outrun_arcade PRIVATE "LINKER:/MAP:${CMAKE_BINARY_DIR}/outrun_arcade.map")
+else()
+    target_link_options(outrun_arcade PRIVATE "LINKER:-Map=${CMAKE_BINARY_DIR}/outrun_arcade.map")
+    # Load the SDK's shared libraries (if any) from next to the executable, so
+    # the staged dist/ folder runs from anywhere.
+    set_target_properties(outrun_arcade PROPERTIES BUILD_RPATH "$ORIGIN")
+    add_custom_command(TARGET outrun_arcade POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:rex::runtime> $<TARGET_FILE_DIR:outrun_arcade>
+        VERBATIM)
 endif()

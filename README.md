@@ -1,6 +1,6 @@
 # OutRun Online Arcade Recompiled
 
-Static recompilation of **OutRun Online Arcade** (Xbox 360 XBLA, SEGA / Sumo Digital, 2009; Title ID 58410968, default.xex 0.0.1.5 built 2009-04-03) to native Windows, using the [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk) v0.9.0.
+Static recompilation of **OutRun Online Arcade** (Xbox 360 XBLA, SEGA / Sumo Digital, 2009; Title ID 58410968, default.xex 0.0.1.5 built 2009-04-03) to native Windows and Linux (Vulkan), using the [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk) v0.9.0.
 
 **No game data is included.** You need your own OutRun Online Arcade XBLA package (the Xbox 360 LIVE file from your
 console's storage).
@@ -23,6 +23,66 @@ assets\
   default.xex
   ...
 ```
+
+## Linux (native, Vulkan)
+The same recompiled code builds as a native Linux executable. On Linux the SDK's Xenos GPU plugin is
+Vulkan-only (D3D12 is compiled out), so nothing needs picking: the game renders through Vulkan. No Wine/Proton.
+
+**Status:** builds with no source changes to the recompiled code; boots, extracts the package on first start
+and plays with correct graphics and sound; saving and loading work.
+Tested on CachyOS (Arch), clang 22, AMD Radeon
+8060S (RADV, Mesa), KDE Plasma Wayland (through Xwayland). Not yet tested: NVIDIA, Steam Deck native, full
+playthroughs.
+
+### Build
+Needs clang 20+, CMake 3.25+, Ninja, git, and the SDK's system libraries:
+
+| Distro | Packages |
+|---|---|
+| Arch / CachyOS | `clang cmake ninja git gtk3 libx11 libxcb libxss vulkan-icd-loader alsa-lib libpulse pipewire` |
+| Ubuntu 24.04 | clang-20 (apt.llvm.org), `cmake ninja-build build-essential git libgtk-3-dev libx11-xcb-dev libxss-dev libvulkan-dev libasound2-dev libpulse-dev libpipewire-0.3-dev` |
+
+```
+tools/build_linux.sh            # SDK v0.9.0 + darkuni SDK patches, then the game
+```
+The first run clones and builds the ReXGlue SDK (v0.9.0 plus the same `rexglue-sdk-builds` patches as the
+Windows package) into `out/linux-deps/` - about 20-30 min; later runs only rebuild the game. Pass another
+folder as the first argument to keep the SDK elsewhere; `CC`/`CXX`/`JOBS` are honoured. GitHub Actions does the
+same on Ubuntu (`.github/workflows/build-linux.yml`) and uploads `outrun_arcade-linux-amd64.tar.gz`.
+
+### Run
+```
+dist-linux/
+  outrun_arcade
+  librexruntime.so
+  librexgpu-xenos.so
+  37517779402B5BE6177926168277F003FFE29D83   <- your package (or the 58410968 folder)
+```
+Put your package next to `outrun_arcade` and start it; the first start makes `assets/` from it, as on Windows.
+The folder runs from anywhere (libraries load from next to the executable). Settings go to `outrun_arcade.toml`,
+logs to `logs/`.
+
+### Linux notes
+- **X11 / Xwayland:** the SDK forces SDL's X11 video driver (its Vulkan presenter uses `VK_KHR_xcb_surface`), so
+  on Wayland desktops it runs through Xwayland. Starting it from a plain TTY/SSH shell needs `DISPLAY` (and
+  `XAUTHORITY`) from your desktop session.
+- **Crashes:** no `crash-*.txt` writer on Linux. The SDK owns SIGSEGV/SIGILL (guest MMIO traps and SEH
+  emulation), and a handler of ours would get in their way; unhandled faults end in a normal core dump instead:
+  `coredumpctl gdb outrun_arcade`, with `outrun_arcade.map` for recompiled function names.
+- **Quitting:** use F1 > Quit or the window close button. The process does not exit on SIGTERM
+  (`kill`/`timeout`); use `pkill -KILL outrun_arcade` from a shell.
+- **Saves (SDK fix):** `patches/sdk/0001-posix-file-access-mode.patch` backports rexglue-sdk commit
+  `0bd1fd552` (after v0.9.0). Without it the POSIX file layer opened read+write files write-only
+  (`O_RDONLY | O_WRONLY` = `O_WRONLY`), so loading the save failed with "end of file" and the game reported its
+  save data as damaged. Windows was never affected. `tools/build_linux.sh` applies `patches/sdk/` after the
+  rexglue-sdk-builds patches; drop it when moving to an SDK release that includes the fix.
+- **Texture exponent (SDK fix, Vulkan):** `patches/sdk/0002-vulkan-tfetch-exp-adjust.patch`. The SPIR-V
+  translator read a texture fetch's result exponent from fetch constant word 4 bits 13:18, which is inside the LOD
+  bias field, instead of word 3 (where `xenos.h` and the D3D12 translator have it). Textures with a LOD bias came
+  out near black. Found in the After Burner Climax recomp (missing terrain), where both recomps share one SDK
+  build, so both carry the same `patches/sdk/`. Not yet in upstream rexglue-sdk.
+- **GPU choice:** with more than one Vulkan device, set `vulkan_device` (index, listed in the log) in
+  `outrun_arcade.toml`.
 
 ## In-game settings (F1 or Esc)
 Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), window size, render resolution, VSync, aspect ratio, texture filtering, audio buffer, keyboard on/off, per-button key rebinding, quit. Saved to `outrun_arcade.toml` next to the exe. F3 = performance overlay. Runs as the full game.
@@ -48,6 +108,8 @@ Same menu as the Poker Smash / ReBirth recomps: display mode (also F11), window 
 | `src/game_menu.*`, `src/game_keys.h` | F1/Esc settings menu and this game's key layout |
 | `tools/` | Package/XEX extraction (STFS, XEX2 basic + LZX), pointer-function scan, label check |
 | `.github/workflows/build-windows.yml` | CI: LLVM + SDK (cached) + game, uploads exe + DLLs |
+| `tools/build_linux.sh`, `.github/workflows/build-linux.yml` | Linux: SDK + patches + game, staged in `dist-linux/` |
+| `patches/sdk/` | SDK fixes backported to the pinned v0.9.0 (applied by `tools/build_linux.sh`) |
 
 ## Codegen fixes so far
 - No analysis errors on the first pass.
